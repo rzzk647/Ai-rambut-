@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI Scan Rambut</title>
+
+<style>
+body {
+  font-family: Arial, sans-serif;
+  background: linear-gradient(135deg,#0f0f0f,#2a2a2a);
+  color: white;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+}
+
+.box {
+  background: #1a1a1a;
+  padding: 20px;
+  border-radius: 12px;
+  width: 100%;
+  max-width: 420px;
+  text-align: center;
+}
+
+video, canvas {
+  width: 100%;
+  border-radius: 10px;
+  margin-top: 10px;
+}
+
+button {
+  width: 100%;
+  padding: 10px;
+  margin-top: 10px;
+  border: none;
+  border-radius: 8px;
+  background: #00ff99;
+  font-weight: bold;
+  cursor: pointer;
+}
+
+.result {
+  margin-top: 15px;
+  background: #111;
+  padding: 15px;
+  border-radius: 8px;
+  white-space: pre-line;
+}
+</style>
+</head>
+
+<body>
+
+<div class="box">
+  <h2>AI Scan Wajah 🤖✂️</h2>
+
+  <video id="video" autoplay></video>
+  <canvas id="canvas" style="display:none;"></canvas>
+
+  <button onclick="ambilFoto()">Scan & Analisa</button>
+
+  <div class="result" id="hasil"></div>
+</div>
+
+<script>
+const API_KEY = "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";
+const video = document.getElementById("video");
+const canvas = document.getElementById("canvas");
+const hasil = document.getElementById("hasil");
+
+// Aktifkan kamera
+navigator.mediaDevices.getUserMedia({ video: true })
+  .then(stream => video.srcObject = stream)
+  .catch(() => alert("Kamera tidak bisa diakses"));
+
+// Ambil foto & kirim ke AI
+async function ambilFoto() {
+  hasil.innerText = "AI sedang menganalisa wajah...";
+
+  canvas.width = video.videoWidth;
+  canvas.height = video.videoHeight;
+  const ctx = canvas.getContext("2d");
+  ctx.drawImage(video, 0, 0);
+
+  const base64Image = canvas.toDataURL("image/jpeg").split(",")[1];
+
+  try {
+    const response = await fetch("https://api.openai.com/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": "Bearer " + API_KEY
+      },
+      body: JSON.stringify({
+        model: "gpt-4.1-mini",
+        messages: [
+          {
+            role: "system",
+            content: "Kamu adalah barber profesional yang menganalisa wajah dari foto."
+          },
+          {
+            role: "user",
+            content: [
+              { "type": "text", "text": "Analisa bentuk wajah dan berikan rekomendasi potongan rambut terbaik." },
+              {
+                "type": "image_url",
+                "image_url": {
+                  "url": "data:image/jpeg;base64," + base64Image
+                }
+              }
+            ]
+          }
+        ]
+      })
+    });
+
+    const data = await response.json();
+    hasil.innerText = data.choices[0].message.content;
+
+  } catch (err) {
+    hasil.innerText = "Gagal menganalisa wajah.";
+  }
+}
+</script>
+
+</body>
+</html>
